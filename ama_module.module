@@ -41,15 +41,18 @@ function ama_module_find_gifs($form, &$form_state) {
     '#value' => 'Submit',
   );
   
-  $form['#submit'][] = 'ama_module_find_gifs_submit';
-  
   // TODO add an I'm feeling lucky button which will return a random gif.
   $form['lucky'] = array(
     '#type' => 'button',
     '#value' => 'Surprise me!',
-    '#submit' => array('ama_module_random_gifs_submit'),
+    '#submit' => array('ama_module_random_gifs'),
   );
-  $default_image = giphy_api_find('1hVi7JFFzplHW');
+  
+  // Make use of the giphy-php lib to get a random image
+  require_once('giphy-php/src/rfreebern/Giphy.php');
+  $giphy = new \rfreebern\Giphy(variable_get('ama_module_giphy_api_key'));
+  $result = $giphy->random();
+  $default_image = $result->data->image_original_url;
   
   if (!empty($default_image)) {
     $form['image'] = array(
@@ -59,6 +62,7 @@ function ama_module_find_gifs($form, &$form_state) {
       ))
     );
   }
+  
   return $form;
 }
 
@@ -77,16 +81,19 @@ function ama_module_find_gifs_validate($form, &$form_state) {
  * Submit function for ama_module_find_gifs().
  */
 function ama_module_find_gifs_submit($form, &$form_state) {
-  
   $find_field = $form_state['values']['find_field'];
-  $result = giphy_api_find($find_field);
+
+  require_once('giphy-php/src/rfreebern/Giphy.php');
+  $giphy = new \rfreebern\Giphy(variable_get('ama_module_giphy_api_key'));
+  $result = $giphy->getByID($find_field);
+  $image_url = $result->data->image_original_url;
   
   if ($result != '') {
     drupal_set_message(t('The ID you supplied does not match an available image on Giphy.', 'warning'));
   }
   else {
     $form['image'] = array(
-      '#markup' => t('<p>Here is the image you searched for:</p><img src="">', $result)
+      '#markup' => t('<p>Here is the image you searched for:</p><img src="@url">', array('@url' => $image_url))
     );
   }
 }
@@ -102,37 +109,3 @@ function ama_module_theme($existing, $type, $theme, $path) {
     ),
   );
 }
-
-/**
- * Search for and return a single giphy image using a text string which should have the file ID.
- */
-function giphy_api_find($string, $endpoint = '') {
-  // Add the API key.
-  $params['api_key'] = variable_get('ama_module_giphy_api_key');
-  
-  $url = "http://api.giphy.com/v1/gifs";
-  if ($endpoint !== '') {
-    $url .= '/' . $endpoint;
-  }
-  if (!empty($string)) {
-    $url .= '/' . urlencode($string);
-  }
-  $url = url($url,
-    array(
-      'query' => $params,
-      'external' => 'external'
-    )
-  );
-  
-  $result = drupal_http_request($url);
-  
-  if ($result->code == 200) {
-    // Return a URL for an image, this could perhaps return an array with URL and attributes
-    return json_decode($result->data)->data->images->downsized->url;
-  }
-  else {
-    return FALSE;
-  }
-}
-
-

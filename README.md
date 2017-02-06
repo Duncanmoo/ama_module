@@ -24,3 +24,8 @@ module a dependency and used that module's functions.
 
 - On the template side I didn't really do anything there, just put the template
 in place.
+
+Installation:
+- There is neither a composer or .make for this yet, but the module needs
+https://github.com/rfreebern/giphy-php as it now makes use of the class to
+interface with the Giphy API.
