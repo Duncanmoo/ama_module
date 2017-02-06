@@ -22,4 +22,5 @@ The question suggested a whole bunch of bonus options, there is a Drupal module
 called giphy, and rather than my sprawling code I should rather have made that
 module a dependency and used that module's functions.
 
-
+On the template side I didn't really do anything there, just put the template
+in place.
