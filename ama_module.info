@@ -1,0 +1,6 @@
+name = Giphy module
+description = Simple module to retrieve an image form Giphy and display it.
+package = Custom
+core = 7.x
+
+;configure = admin/config/administration/ama_module

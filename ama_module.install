@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function ama_module_install() {
+  // Set the default API key for giphy
+  variable_set('ama_module_giphy_api_key', 'dc6zaTOxFJmzC');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function ama_module_uninstall() {
+  // Clean up by deleting the giphy_api_key variable.
+  variable_del('ama_module_giphy_api_key');
+}

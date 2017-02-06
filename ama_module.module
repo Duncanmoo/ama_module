@@ -1,0 +1,123 @@
+<?php
+
+/**
+ * @file
+ * Render an administrative menu as a dropdown menu at the top of the window.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function ama_module_menu() {
+  $items = array();
+  // Menu link callbacks.
+  $items['giphy/find'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('ama_module_find_gifs'),
+    'access callback' => TRUE,
+    'description' => t('You can fetch Gifly images using this page.'),
+    'type' => MENU_LOCAL_TASK,
+  );
+  return $items;
+}
+
+/**
+ * Callback to display find gifs form.
+ */
+function ama_module_find_gifs($form, &$form_state) {
+  $form['description'] = array(
+    '#type' => 'item',
+    '#title' => t('A form allowing you to find a Giphy image.'),
+  );
+  
+  $form['find_field'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Search for a Giphy ID'),
+    '#size' => 6,
+  );
+  
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit',
+    '#submit' => array('ama_module_find_gifs_submit'),
+  );
+  
+  // TODO add an I'm feeling lucky button which will return a random gif.
+  //$form['lucky'] = array(
+  //  '#type' => 'button',
+  //  '#value' => 'Surprise me!',
+  //  '#submit' => array('ama_module_random_gifs_submit'),
+  //);
+  $default_image = giphy_api_find('1hVi7JFFzplHW');
+  if (!empty($default_image)) {
+    $form['image'] = array(
+      '#markup' => t('Here is the default image: <img src="@url">', array('@url' => 'hi'))
+    );
+  }
+  
+  return $form;
+}
+
+/**
+ * Validate function for ama_module_find_gifs().
+ */
+function ama_module_find_gifs_validate($form, &$form_state) {
+  // Add simple validation to make sure we have a value before hitting the API
+  $find_field = $form_state['values']['find_field'];
+  if (trim($find_field) === '') {
+    form_set_error('find_field', t('Please enter an ID of an image.'));
+  }
+}
+
+/**
+ * Submit function for ama_module_find_gifs().
+ */
+function ama_module_find_gifs_submit($form, &$form_state) {
+  
+  $result = giphy_api_find($find_field);
+  
+  if ($result->code != 200) {
+    drupal_set_message(t('The ID you supplied does not match an available image on Giphy.', 'warning'));
+  }
+  else {
+    //$form['image'] = array(
+    //  '#markup' => t('Here is the image you searched for: <img src="">', $url)
+    //);
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function theming_example_theme($existing, $type, $theme, $path) {
+  return array(
+    'ama_module_find_gifs'  => array(
+      'render element' => 'form',
+      'template' => 'ama-module-find-gifs',
+    ),
+  );
+}
+
+/**
+ * Search for and return a single giphy image using a text string which should have the file ID.
+ */
+function giphy_api_find($string) {
+  // Add the API key.
+  $params['api_key'] = variable_get('ama_module_giphy_api_key');
+  
+  $url = "http://api.giphy.com/v1/gifs";
+  if (!empty($find_field)) {
+    $url .= "/" . urlencode($string);
+  }
+  
+  $result = drupal_http_request($url);
+  
+  if ($result->code != 200) {
+    return $result;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+
