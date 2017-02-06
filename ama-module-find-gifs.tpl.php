@@ -5,5 +5,5 @@
  */
 ?>
 <div class="container-inline">
-  <?php print $text_form; ?>
+  <?php print drupal_render_children($form); ?>
 </div>

@@ -39,22 +39,26 @@ function ama_module_find_gifs($form, &$form_state) {
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => 'Submit',
-    '#submit' => array('ama_module_find_gifs_submit'),
   );
   
+  $form['#submit'][] = 'ama_module_find_gifs_submit';
+  
   // TODO add an I'm feeling lucky button which will return a random gif.
-  //$form['lucky'] = array(
-  //  '#type' => 'button',
-  //  '#value' => 'Surprise me!',
-  //  '#submit' => array('ama_module_random_gifs_submit'),
-  //);
+  $form['lucky'] = array(
+    '#type' => 'button',
+    '#value' => 'Surprise me!',
+    '#submit' => array('ama_module_random_gifs_submit'),
+  );
   $default_image = giphy_api_find('1hVi7JFFzplHW');
+  
   if (!empty($default_image)) {
     $form['image'] = array(
-      '#markup' => t('Here is the default image: <img src="@url">', array('@url' => 'hi'))
+      '#markup' => t('<p>Here is the default image:</p><img src="@url"><br><a href="@giphy">Powered by GIPHY</a>',array(
+        '@url' => $default_image,
+        '@giphy' => 'http://giphy.com',
+      ))
     );
   }
-  
   return $form;
 }
 
@@ -64,7 +68,7 @@ function ama_module_find_gifs($form, &$form_state) {
 function ama_module_find_gifs_validate($form, &$form_state) {
   // Add simple validation to make sure we have a value before hitting the API
   $find_field = $form_state['values']['find_field'];
-  if (trim($find_field) === '') {
+  if (trim($find_field) == '') {
     form_set_error('find_field', t('Please enter an ID of an image.'));
   }
 }
@@ -74,22 +78,23 @@ function ama_module_find_gifs_validate($form, &$form_state) {
  */
 function ama_module_find_gifs_submit($form, &$form_state) {
   
+  $find_field = $form_state['values']['find_field'];
   $result = giphy_api_find($find_field);
   
-  if ($result->code != 200) {
+  if ($result != '') {
     drupal_set_message(t('The ID you supplied does not match an available image on Giphy.', 'warning'));
   }
   else {
-    //$form['image'] = array(
-    //  '#markup' => t('Here is the image you searched for: <img src="">', $url)
-    //);
+    $form['image'] = array(
+      '#markup' => t('<p>Here is the image you searched for:</p><img src="">', $result)
+    );
   }
 }
 
 /**
  * Implements hook_theme().
  */
-function theming_example_theme($existing, $type, $theme, $path) {
+function ama_module_theme($existing, $type, $theme, $path) {
   return array(
     'ama_module_find_gifs'  => array(
       'render element' => 'form',
@@ -101,19 +106,29 @@ function theming_example_theme($existing, $type, $theme, $path) {
 /**
  * Search for and return a single giphy image using a text string which should have the file ID.
  */
-function giphy_api_find($string) {
+function giphy_api_find($string, $endpoint = '') {
   // Add the API key.
   $params['api_key'] = variable_get('ama_module_giphy_api_key');
   
   $url = "http://api.giphy.com/v1/gifs";
-  if (!empty($find_field)) {
-    $url .= "/" . urlencode($string);
+  if ($endpoint !== '') {
+    $url .= '/' . $endpoint;
   }
+  if (!empty($string)) {
+    $url .= '/' . urlencode($string);
+  }
+  $url = url($url,
+    array(
+      'query' => $params,
+      'external' => 'external'
+    )
+  );
   
   $result = drupal_http_request($url);
   
-  if ($result->code != 200) {
-    return $result;
+  if ($result->code == 200) {
+    // Return a URL for an image, this could perhaps return an array with URL and attributes
+    return json_decode($result->data)->data->images->downsized->url;
   }
   else {
     return FALSE;
